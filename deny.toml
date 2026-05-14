@@ -18,7 +18,15 @@ yanked = "warn"
 # RUSTSEC-2025-0134 — `rustls-pemfile` marked unmaintained (functionality
 # absorbed into `rustls-pki-types`). Migration tracked as a Phase 09 task.
 # No known security defect; it's purely a maintenance signal.
-ignore = ["RUSTSEC-2025-0134"]
+ignore = [
+    # rustls-pemfile — superseded by rustls-pki-types' PEM helpers. Migration
+    # scoped into Phase 09's hardening sweep.
+    "RUSTSEC-2025-0134",
+    # bincode (1.x) — marked unmaintained, pulled in transitively by webrtc-rs.
+    # No known security defect; pure maintenance signal. Revisit when webrtc-rs
+    # upgrades to bincode 2.x.
+    "RUSTSEC-2025-0141",
+]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Licenses — strict allowlist. AGPL-3.0 is fine for *our* code; we cannot

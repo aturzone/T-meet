@@ -319,10 +319,29 @@ impl Handler {
                 }
             },
             ClientMsg::Offer { sdp, .. } => {
-                let _ = self.state.sfu.on_offer(&self.room_id, &pid, &sdp).await;
+                match self.state.sfu.on_offer(&self.room_id, &pid, &sdp).await {
+                    Ok(answer_sdp) => {
+                        let resp = ServerMsg::Answer {
+                            v: meet_core::signaling::PROTOCOL_VERSION,
+                            sdp: answer_sdp,
+                            from: "sfu".into(),
+                        };
+                        self.state.room_hub.send_to(&self.room_id, &pid, resp);
+                    },
+                    Err(e) => {
+                        tracing::warn!(room_id = %self.room_id, pid = %pid, error = ?e, "sfu on_offer failed");
+                        self.state.room_hub.send_to(
+                            &self.room_id,
+                            &pid,
+                            ServerMsg::error(CloseCode::ProtocolViolation, "offer rejected"),
+                        );
+                    },
+                }
             },
             ClientMsg::Answer { sdp, .. } => {
-                let _ = self.state.sfu.on_answer(&self.room_id, &pid, &sdp).await;
+                if let Err(e) = self.state.sfu.on_answer(&self.room_id, &pid, &sdp).await {
+                    tracing::warn!(room_id = %self.room_id, pid = %pid, error = ?e, "sfu on_answer failed");
+                }
             },
             ClientMsg::IceCandidate { candidate, .. } => {
                 let _ = self.state.sfu.on_ice(&self.room_id, &pid, candidate).await;

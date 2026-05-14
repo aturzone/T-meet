@@ -67,6 +67,9 @@ tower = { version = "0.5", default-features = false, features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "limit"] }
 async-trait = "0.1"
 
+# WebRTC SFU (Phase 05)
+webrtc = { version = "0.12", default-features = false }
+
 # Storage (Phase 02)
 sqlx = { version = "0.8", default-features = false, features = [
     "runtime-tokio",

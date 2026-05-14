@@ -52,7 +52,9 @@ pub async fn run_serve(cfg: Config, passphrase: SecretBox<String>) -> Result<(),
         at_rest_key: Arc::new(loaded.at_rest_key),
         rate_limiter: Arc::new(RateLimiter::new()),
         room_hub: crate::signaling::room_hub::shared_hub(),
-        sfu: Arc::new(meet_core::signaling::sfu_api::NoopSfu),
+        sfu: Arc::new(
+            meet_sfu::Sfu::new_default().map_err(|e| std::io::Error::other(e.to_string()))?,
+        ),
     };
     let app = build_app(state);
 
