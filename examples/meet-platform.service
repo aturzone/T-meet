@@ -1,0 +1,54 @@
+## Example systemd unit for T-meet.
+##
+## Install:
+##   sudo cp examples/meet-platform.service /etc/systemd/system/
+##   sudo useradd --system --shell /usr/sbin/nologin --home /opt/meet-platform meet
+##   sudo install -d -m 0700 -o meet -g meet /etc/meet
+##   sudo install -m 0600 -o meet -g meet /dev/stdin /etc/meet/passphrase.env <<'EOF'
+##   MEET_ADMIN_PASSPHRASE=correct horse battery staple
+##   EOF
+##   sudo install -d -m 0750 -o meet -g meet /opt/meet-platform
+##   sudo cp meet-server config.toml run.sh /opt/meet-platform/
+##   sudo chown -R meet:meet /opt/meet-platform
+##   sudo systemctl daemon-reload
+##   sudo systemctl enable --now meet-platform
+##
+## Logs to journald — query with `journalctl -u meet-platform`.
+
+[Unit]
+Description=T-meet self-hosted meeting platform
+Documentation=file:///opt/meet-platform/docs/INSTALL.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=meet
+Group=meet
+WorkingDirectory=/opt/meet-platform
+EnvironmentFile=/etc/meet/passphrase.env
+ExecStart=/opt/meet-platform/meet-server serve
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/opt/meet-platform/data
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false  # libsodium / webrtc-rs use JIT-adjacent paths
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

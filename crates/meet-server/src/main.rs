@@ -5,7 +5,7 @@ use std::process::ExitCode;
 
 use meet_core::config::Config;
 use meet_core::log;
-use meet_server::{init, passphrase, serve};
+use meet_server::{admin, init, passphrase, serve};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
@@ -22,11 +22,97 @@ fn main() -> ExitCode {
         },
         "init" => run_init_cmd(),
         "serve" => run_serve_cmd(),
+        "admin" => run_admin_cmd(&args),
+        "doctor" => run_doctor_cmd(),
         other => {
             eprintln!("unknown command: {other}");
             print_help();
             ExitCode::from(2)
         },
+    }
+}
+
+fn run_admin_cmd(args: &[String]) -> ExitCode {
+    let sub = args.get(2).map_or("--help", String::as_str);
+    let subsub = args.get(3).map_or("", String::as_str);
+    match (sub, subsub) {
+        ("token", "regenerate") => run_admin_token_regenerate(),
+        ("status", _) => run_admin_status(),
+        _ => {
+            eprintln!("usage:\n  meet-server admin token regenerate\n  meet-server admin status");
+            ExitCode::from(2)
+        },
+    }
+}
+
+fn run_admin_token_regenerate() -> ExitCode {
+    let cfg = load_or_default();
+    log::init(&cfg.log);
+    let pp = match passphrase::read_admin_passphrase() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("passphrase error: {e}");
+            return ExitCode::from(2);
+        },
+    };
+    match admin::regenerate_admin_token(&cfg, &pp) {
+        Ok(token) => {
+            println!();
+            println!("================================================================");
+            println!("T-meet — new admin token (shown ONCE):");
+            println!("    {token}");
+            println!();
+            println!("Outstanding admin tokens are now invalid.");
+            println!("================================================================");
+            ExitCode::SUCCESS
+        },
+        Err(e) => {
+            eprintln!("admin token regenerate failed: {e}");
+            ExitCode::from(1)
+        },
+    }
+}
+
+fn run_admin_status() -> ExitCode {
+    let cfg = load_or_default();
+    log::init(&cfg.log);
+    match admin::status(&cfg) {
+        Ok(s) => {
+            println!("data_dir         {}", s.data_dir.display());
+            println!("leaf valid from  {}", s.leaf_not_before);
+            println!("leaf valid until {}", s.leaf_not_after);
+            println!("leaf days left   {}", s.leaf_days_remaining);
+            println!("rooms            {}", s.rooms);
+            println!("audit entries    {}", s.audit_entries);
+            println!("db size (bytes)  {}", s.db_size_bytes);
+            ExitCode::SUCCESS
+        },
+        Err(e) => {
+            eprintln!("admin status failed: {e}");
+            ExitCode::from(1)
+        },
+    }
+}
+
+fn run_doctor_cmd() -> ExitCode {
+    let cfg = load_or_default();
+    let report = admin::doctor(&cfg);
+    let mut failed = false;
+    for check in &report.checks {
+        let badge = match check.status {
+            admin::DoctorStatus::Ok => "OK  ",
+            admin::DoctorStatus::Warn => "WARN",
+            admin::DoctorStatus::Fail => {
+                failed = true;
+                "FAIL"
+            },
+        };
+        println!("[{badge}] {:<24} {}", check.name, check.detail);
+    }
+    if failed {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
@@ -132,10 +218,13 @@ USAGE:
     meet-server <COMMAND>
 
 COMMANDS:
-    init        One-time first-boot setup (generate CA + first leaf)
-    serve       Run the server
-    --version   Print version
-    --help      Print this message
+    init                            One-time first-boot setup
+    serve                           Run the server
+    admin token regenerate          Rotate the admin secret + print a new token
+    admin status                    Print non-sensitive operational status
+    doctor                          Pre-flight: file perms, ports, data dir
+    --version                       Print version
+    --help                          Print this message
 
 ENVIRONMENT:
     MEET_ADMIN_PASSPHRASE   Read instead of prompting on a TTY.

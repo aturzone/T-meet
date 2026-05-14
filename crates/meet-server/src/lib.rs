@@ -6,6 +6,7 @@
 //! exposed here are the same ones the binary uses, made public so integration
 //! tests under `crates/meet-server/tests/` can drive them.
 
+pub mod admin;
 pub mod admin_secret;
 pub mod app;
 pub mod init;
