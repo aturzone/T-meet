@@ -42,7 +42,7 @@ jobs:
           key: release-${{ matrix.target }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
