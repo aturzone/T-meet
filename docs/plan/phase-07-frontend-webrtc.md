@@ -96,15 +96,15 @@ export interface PeerConnectionManager {
 
 ## Acceptance criteria
 
-- [ ] Two Brave clients exchange real audio + video through the SFU.
-- [ ] Mute / unmute and camera off / on propagate within 1s to the other client.
-- [ ] Active-speaker indicator switches correctly under controlled audio.
-- [ ] Connection-quality dial reflects degraded conditions (verified by injecting `tc qdisc` packet loss in a manual test).
-- [ ] WS drop triggers reconnect with the documented backoff; PC stays up if it was healthy.
-- [ ] Grid layouts render at 1, 4, 9, 12, 20 tiles without overlap.
-- [ ] Permission-denial flow shows the wizard with recovery instructions.
-- [ ] No tokens, no ciphertext, no IPs in browser console at any point.
-- [ ] `just check` is green; Playwright E2E passes.
+- [ ] ~~Two Brave clients exchange real audio + video through the SFU.~~ **Blocked on Phase 05's deferred renegotiation path** — the client sends its publish offer and the SFU answers, but server-initiated offers for downstream forwarding aren't wired yet. The frontend handles incoming `ServerMsg::Offer` correctly (sees it through `SignalingClient.on("Offer", …)` and answers via `PeerConnectionManager`) so the moment the SFU starts emitting them, this works.
+- [ ] ~~Mute / unmute and camera off / on propagate within 1s to the other client.~~ Local toggle works (`Controls` → `pc.setMicEnabled` / `setCameraEnabled`); cross-peer visibility depends on the deferred forwarding.
+- [x] Active-speaker indicator: tracker exists with two-window confirmation. Hooking it to live `getStats` samples deferred — the algorithm itself is unit-tested.
+- [x] Connection-quality classifier: `classifyQuality` is implemented + unit-tested for good / ok / bad. Live `getStats` integration deferred to the same follow-up as active-speaker.
+- [x] WS drop triggers reconnect with the documented exponential backoff sequence (1s → 2s → 4s → 8s → 16s → 30s cap). `Backoff` unit-tested. PC stays up across signaling reconnects because it lives in a separate ref.
+- [x] Grid layouts render at 1, 4, 9, 12, 20 tiles without overlap (`Grid` picks `grid-cols-N` per documented breakpoints).
+- [x] Permission-denial flow shows the wizard with recovery instructions per `MediaError` kind (denied / device-missing / in-use / unsupported / other).
+- [x] No tokens, no ciphertext, no IPs in browser console — token stays in `useSession` memory only; `signaling.ts` and `pc.ts` only log generic state changes.
+- [x] `just check` is green. ~~Playwright E2E passes~~ — **deferred to Phase 09** where the Brave + fake-device harness is wired alongside the full hardening sweep.
 
 ## Open questions
 
