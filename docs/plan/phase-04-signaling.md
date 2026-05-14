@@ -152,14 +152,14 @@ pub trait SfuPort: Send + Sync {
 
 ## Acceptance criteria
 
-- [ ] `wss://<host>/ws` upgrades and the first-message auth flow works end-to-end.
-- [ ] All client→server and server→client variants serialize/deserialize per the documented schemas.
-- [ ] State machine is implemented in a separate module and unit-tested without I/O.
-- [ ] Concurrent-connection caps enforced.
-- [ ] Heartbeat + idle disconnect implemented.
-- [ ] Backpressure: a stuck writer doesn't pin server memory.
-- [ ] No PII or ciphertext appears in info logs.
-- [ ] `just check` is green.
+- [x] `wss://<host>/ws` upgrades and the first-message auth flow works end-to-end.
+- [x] All client→server and server→client variants serialize/deserialize per the documented schemas.
+- [x] State machine is implemented in a separate module and unit-tested without I/O.
+- [x] Concurrent-connection caps enforced.
+- [x] Heartbeat + idle disconnect implemented.
+- [x] Backpressure: a stuck writer doesn't pin server memory.
+- [x] No PII or ciphertext appears in info logs.
+- [x] `just check` is green.
 
 ## Open questions
 

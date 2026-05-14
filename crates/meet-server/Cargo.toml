@@ -54,6 +54,10 @@ bytes = { workspace = true }
 
 # Phase 03
 base64 = { workspace = true }
+
+# Phase 04
+futures = "0.3"
+async-trait = { workspace = true }
 axum = { workspace = true }
 axum-server = { workspace = true }
 tower = { workspace = true }
@@ -63,3 +67,5 @@ tower-http = { workspace = true }
 tokio = { workspace = true }
 tempfile = "3.13"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-manual-roots", "json"] }
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-webpki-roots", "url"] }
+futures-util = "0.3"

@@ -243,7 +243,7 @@ async fn join_flow_right_and_wrong_passwords_and_rate_limit() {
     let body: Value = ok.json().await.unwrap();
     let token = body["join_token"].as_str().unwrap().to_owned();
     assert!(token.starts_with("v4.local."), "got: {token}");
-    assert_eq!(body["ws_url"], "/ws");
+    assert_eq!(body["ws_url"], format!("/ws/{room_id}"));
     assert!(body["participant_id"].as_str().unwrap().len() >= 22);
 
     // Rate limit is scoped to (ip, room_id). On this specific room we've

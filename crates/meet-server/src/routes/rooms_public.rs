@@ -118,7 +118,7 @@ pub async fn join(
 
     let body = JoinResp {
         join_token: token,
-        ws_url: "/ws".to_owned(),
+        ws_url: format!("/ws/{room_id}"),
         ice_servers: Vec::new(),
         participant_id: pid,
     };

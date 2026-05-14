@@ -45,5 +45,8 @@ pasetors = { workspace = true }
 base64 = { workspace = true }
 data-encoding = { workspace = true }
 
+# Phase 04 signaling
+async-trait = { workspace = true }
+
 [dev-dependencies]
 tokio = { workspace = true }

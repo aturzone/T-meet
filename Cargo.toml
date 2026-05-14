@@ -61,10 +61,11 @@ x509-parser = "0.16"
 rpassword = "7.3"
 
 # HTTP (used minimally in Phase 01 for /ca.crt; fleshed out in Phase 02)
-axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "json"] }
+axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "json", "ws"] }
 axum-server = { version = "0.7", default-features = false, features = ["tls-rustls-no-provider"] }
 tower = { version = "0.5", default-features = false, features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "limit"] }
+async-trait = "0.1"
 
 # Storage (Phase 02)
 sqlx = { version = "0.8", default-features = false, features = [

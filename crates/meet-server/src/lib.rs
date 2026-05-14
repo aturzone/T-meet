@@ -14,6 +14,7 @@ pub mod passphrase;
 pub mod paths;
 pub mod routes;
 pub mod serve;
+pub mod signaling;
 pub mod tls;
 
 pub use init::{run_init, InitError, InitOutput};

@@ -6,12 +6,14 @@ use axum::http::Method;
 use axum::routing::{delete, get, post};
 use axum::{middleware as mw, Router};
 use meet_core::db::Db;
+use meet_core::signaling::sfu_api::SfuPort;
 
 use crate::middleware::{
     access_log, admin_auth, body_limit, rate_limit, request_id, security_headers,
 };
 use crate::paths::DataPaths;
 use crate::routes;
+use crate::signaling::room_hub::RoomHub;
 
 /// Shared state. Grows as later phases attach more resources.
 #[derive(Clone)]
@@ -21,6 +23,8 @@ pub struct AppState {
     pub admin_secret: Arc<[u8; 32]>,
     pub at_rest_key: Arc<[u8; 32]>,
     pub rate_limiter: Arc<rate_limit::RateLimiter>,
+    pub room_hub: Arc<RoomHub>,
+    pub sfu: Arc<dyn SfuPort>,
 }
 
 impl std::fmt::Debug for AppState {
@@ -50,6 +54,7 @@ pub fn build_app(state: AppState) -> Router {
             }),
         )
         .route("/r/:id/join", post(routes::rooms_public::join))
+        .route("/ws/:room_id", get(routes::ws::handler))
         .nest("/admin", admin_routes)
         .fallback(routes::assets::handler)
         .layer(body_limit::json_layer())
