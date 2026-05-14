@@ -1,0 +1,16 @@
+# MUSL targets for the static release binary (Phase 10).
+#
+# The musl-gcc wrapper ships with `musl-tools` on Debian/Ubuntu; on Fedora the
+# package is `musl-gcc`. Cross builds (aarch64 on x86 hosts) go through the
+# `cross` tool instead — see `.github/workflows/release.yml`.
+
+[target.x86_64-unknown-linux-musl]
+linker = "musl-gcc"
+# Static-PIE keeps ASLR while still producing a single binary with no runtime
+# dynamic loader dependency.
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-unknown-linux-musl]
+# Filled in by `cross` when invoked; left intentionally empty so the host
+# linker isn't picked up.
+rustflags = ["-C", "target-feature=+crt-static"]

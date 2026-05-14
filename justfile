@@ -56,12 +56,25 @@ test-e2e:
 audit:
     @echo "TODO phase-09 — cargo deny check + pnpm audit --prod"
 
-# ─── Packaging ───────────────────────────────────────────────────────────────
-package:
-    @echo "TODO phase-10 — produce dist/meet-platform-<version>-<arch>.tar.gz"
+# ─── Packaging (Phase 10) ────────────────────────────────────────────────────
+#
+# Produces a single tarball with the static musl binary, run.sh, the example
+# config, the per-OS install docs, and the AGPL-3.0 license.
+#
+# Usage:
+#     just package                     # defaults to host-arch musl (x86_64)
+#     just package aarch64-unknown-linux-musl
+#
+# Cross builds shell out to `cross`; the host-arch musl build uses musl-gcc
+# directly. The release CI workflow runs both targets in parallel.
 
-verify-static:
-    @echo "TODO phase-10 — file ./target/x86_64-unknown-linux-musl/release/meet-server | grep 'statically linked'"
+target := env_var_or_default('TARGET', 'x86_64-unknown-linux-musl')
+
+package target=target: frontend-build
+    bash scripts/package.sh {{target}}
+
+verify-static target=target:
+    bash scripts/verify_static.sh target/{{target}}/release/meet-server
 
 # ─── Hygiene ─────────────────────────────────────────────────────────────────
 clean:
