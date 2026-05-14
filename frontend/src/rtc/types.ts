@@ -20,6 +20,7 @@ export type ServerEvent =
       room: RoomDescriptor;
     }
   | { type: "PeerJoined"; v: number; peer: PeerDescriptor }
+  | { type: "PeerUpdated"; v: number; peer: PeerDescriptor }
   | { type: "PeerLeft"; v: number; pid: string }
   | { type: "Offer"; v: number; sdp: string; from: string }
   | { type: "Answer"; v: number; sdp: string; from: string }
@@ -46,6 +47,7 @@ export type ClientMsg =
       nonce: string;
       to: string;
     }
-  | { type: "Ping"; v: number; ts: number };
+  | { type: "Ping"; v: number; ts: number }
+  | { type: "Announce"; v: number; pubkey: string };
 
 export const PROTOCOL_VERSION = 1;

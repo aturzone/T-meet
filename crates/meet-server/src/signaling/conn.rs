@@ -299,6 +299,21 @@ impl Handler {
                     .room_hub
                     .send_to(&self.room_id, &pid, ServerMsg::pong(ts, server_ts));
             },
+            ClientMsg::Announce { pubkey, .. } => {
+                if pubkey.is_empty() || pubkey.len() > 256 {
+                    let _ = ws_tx
+                        .send(close_message(CloseCode::ProtocolViolation, "bad pubkey"))
+                        .await;
+                    return Err("bad pubkey");
+                }
+                if let Some(updated) = self.state.room_hub.set_pubkey(&self.room_id, &pid, pubkey) {
+                    // Broadcast the updated descriptor to every peer so
+                    // they all learn the announcer's pubkey. The announcer
+                    // also receives it (idempotent on the client side).
+                    let msg = ServerMsg::peer_updated(updated);
+                    self.state.room_hub.broadcast(&self.room_id, "", msg);
+                }
+            },
             ClientMsg::Chat {
                 ciphertext,
                 nonce,

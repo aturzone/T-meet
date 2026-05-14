@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { ChatPanel } from "../components/room/ChatPanel";
 import { Controls } from "../components/room/Controls";
 import { Grid } from "../components/room/Grid";
 import { PermissionWizard } from "../components/room/PermissionWizard";
@@ -8,6 +9,13 @@ import { VideoTile } from "../components/room/VideoTile";
 import { PeerConnectionManager } from "../rtc/pc";
 import { SignalingClient, type SignalingState } from "../rtc/signaling";
 import { requestMedia, stopTracks, type MediaError } from "../rtc/media";
+import {
+  announcePubkey,
+  ingestChat,
+  recordPeerKey,
+} from "../chat/wire";
+import { clearSessionKeys } from "../chat/keys";
+import { useChat } from "../chat/store";
 import { useSession, useUi } from "../lib/store";
 
 interface RemoteFeed {
@@ -85,6 +93,8 @@ export default function Room() {
     pcRef.current = pc;
 
     const peers = useSession.getState();
+    const chat = useChat.getState();
+
     const detachJoined = sig.on("Joined", (ev) => {
       peers.setPeers(
         ev.peers.map((p) => ({
@@ -93,6 +103,11 @@ export default function Room() {
           ...(p.pubkey !== undefined ? { pubkey: p.pubkey } : {}),
         })),
       );
+      for (const p of ev.peers) {
+        if (p.pubkey) void recordPeerKey(p.pid, p.pubkey);
+      }
+      // Now that we know our pid, announce our pubkey.
+      void announcePubkey(sig);
     });
     const detachPeerJoined = sig.on("PeerJoined", (ev) => {
       peers.addPeer({
@@ -100,10 +115,26 @@ export default function Room() {
         displayName: ev.peer.display_name,
         ...(ev.peer.pubkey !== undefined ? { pubkey: ev.peer.pubkey } : {}),
       });
+      if (ev.peer.pubkey) void recordPeerKey(ev.peer.pid, ev.peer.pubkey);
+    });
+    const detachPeerUpdated = sig.on("PeerUpdated", (ev) => {
+      // Mostly used for late-arriving pubkeys.
+      if (ev.peer.pubkey) void recordPeerKey(ev.peer.pid, ev.peer.pubkey);
     });
     const detachPeerLeft = sig.on("PeerLeft", (ev) => {
       peers.removePeer(ev.pid);
+      chat.removePeer(ev.pid);
       setRemoteFeeds((feeds) => feeds.filter((f) => f.pid !== ev.pid));
+    });
+    const detachChat = sig.on("Chat", (ev) => {
+      const fromPeer = useSession.getState().peers.find(
+        (p) => p.pid === ev.from,
+      );
+      void ingestChat({
+        fromPid: ev.from,
+        fromName: fromPeer?.displayName ?? ev.from.slice(0, 6),
+        ciphertext: ev.ciphertext,
+      });
     });
     const detachError = sig.on("Error", (ev) => {
       pushToast("error", `signaling error ${ev.code}: ${ev.message}`);
@@ -131,7 +162,9 @@ export default function Room() {
     return () => {
       detachJoined();
       detachPeerJoined();
+      detachPeerUpdated();
       detachPeerLeft();
+      detachChat();
       detachError();
       detachTrack();
     };
@@ -147,6 +180,8 @@ export default function Room() {
     pcRef.current?.close();
     signalingRef.current?.close();
     stopTracks(localStream);
+    void clearSessionKeys();
+    useChat.getState().clear();
     session.clear();
     navigate("/");
   }, [localStream, navigate, session]);
@@ -251,6 +286,13 @@ export default function Room() {
           onLeave={handleLeave}
         />
       </div>
+
+      <ChatPanel
+        signaling={signalingRef.current}
+        selfPid={session.participantId}
+        selfName={session.displayName ?? "you"}
+        peers={peers}
+      />
     </main>
   );
 }

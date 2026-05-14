@@ -119,6 +119,16 @@ impl RoomHub {
         self.lock().get(room_id).map_or(0, |r| r.participants.len())
     }
 
+    /// Record a participant's announced pubkey, returning the updated
+    /// descriptor so the caller can broadcast `PeerUpdated`.
+    pub fn set_pubkey(&self, room_id: &str, pid: &str, pubkey: String) -> Option<PeerDescriptor> {
+        let mut guard = self.lock();
+        let room = guard.get_mut(room_id)?;
+        let participant = room.participants.get_mut(pid)?;
+        participant.descriptor.pubkey = Some(pubkey);
+        Some(participant.descriptor.clone())
+    }
+
     fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<String, Room>> {
         self.rooms.lock().unwrap_or_else(|e| {
             self.rooms.clear_poison();

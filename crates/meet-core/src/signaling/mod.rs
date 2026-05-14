@@ -101,6 +101,13 @@ pub enum ClientMsg {
         v: u32,
         ts: i64,
     },
+    /// Tell the server "this is my public key — please tell every peer."
+    /// Phase 08: X25519 public key for sealed-box chat.
+    Announce {
+        #[serde(default = "default_v")]
+        v: u32,
+        pubkey: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,6 +120,11 @@ pub enum ServerMsg {
         room: RoomDescriptor,
     },
     PeerJoined {
+        v: u32,
+        peer: PeerDescriptor,
+    },
+    /// A peer's descriptor changed (e.g. they announced their pubkey).
+    PeerUpdated {
         v: u32,
         peer: PeerDescriptor,
     },
@@ -171,6 +183,14 @@ impl ServerMsg {
     #[must_use]
     pub fn peer_joined(peer: PeerDescriptor) -> Self {
         Self::PeerJoined {
+            v: PROTOCOL_VERSION,
+            peer,
+        }
+    }
+
+    #[must_use]
+    pub fn peer_updated(peer: PeerDescriptor) -> Self {
+        Self::PeerUpdated {
             v: PROTOCOL_VERSION,
             peer,
         }

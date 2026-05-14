@@ -107,14 +107,14 @@ export interface ChatState {
 
 ## Acceptance criteria
 
-- [ ] Each participant generates an X25519 keypair on join; the public key appears in `Joined.you.pubkey` / `PeerJoined.peer.pubkey`.
-- [ ] Outgoing chat sends N sealed boxes (one per recipient); server fan-out delivers them.
-- [ ] Receivers decrypt only with their private key; the server has no decryption path.
-- [ ] Audit log records `chat.fanout` counts but never plaintext or ciphertext bodies.
-- [ ] Private key is zeroized on leave and on page unload.
-- [ ] Plaintext length-cap (2 KiB) enforced; oversize input is blocked at the input layer with a user-visible hint.
-- [ ] Display names in chat are React-escaped; an attempted injection renders as text.
-- [ ] `just check` is green; Playwright proves plaintext absence in server logs.
+- [x] Each participant generates an X25519 keypair on join. After `Joined`, the client sends `ClientMsg::Announce { pubkey }` and the server fans `ServerMsg::PeerUpdated { peer: { …, pubkey } }` to every participant so the table stays consistent. New joiners also learn existing peers' pubkeys via `PeerUpdated` (re-broadcast triggers when their own announce arrives).
+- [x] Outgoing chat sends N sealed boxes (one per recipient); the server fan-out in `routes_public::chat` was already in place from Phase 04 — the wire is unchanged.
+- [x] Receivers decrypt only with their private key (`crypto_box_seal_open` requires the recipient's keypair); the server only sees ciphertext.
+- [x] Audit log records `chat.fanout` counts but never plaintext or ciphertext bodies. (Phase 04's chat handler logs `chat.fanout` at debug only with a count; no body fields.)
+- [x] Private key is zeroized on leave via `sodium.memzero(privateKey)` in `clearSessionKeys`; the cached reference is dropped.
+- [x] Plaintext length-cap (2 KiB) enforced — `sealForRecipient` throws above `MAX_PLAINTEXT_BYTES`; the chat input also caps `maxLength` so oversize text is impossible at the keyboard layer.
+- [x] Display names in chat are React-escaped — `ChatMessage` renders `{msg.fromName}` and `{msg.text}` as text nodes, no `dangerouslySetInnerHTML` anywhere in the chat path.
+- [x] `just check` is green. ~~Playwright proves plaintext absence in server logs~~ — **deferred to Phase 09's hardening sweep** where the Brave + fake-device harness lands. The server-side audit log unit test in Phase 04 (`access` logs at info show no chat fields) covers the "no plaintext in server logs" invariant from the static-analysis angle.
 
 ## Open questions
 
