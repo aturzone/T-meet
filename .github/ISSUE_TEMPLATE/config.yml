@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security disclosure
+    url: https://github.com/aturzone/T-meet/security/advisories/new
+    about: Report a vulnerability privately. See SECURITY.md for the full policy.
+  - name: Questions and discussion
+    url: https://github.com/aturzone/T-meet/discussions
+    about: Open-ended questions, design discussion, or help with setup.

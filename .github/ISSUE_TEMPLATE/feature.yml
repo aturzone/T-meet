@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a feature for T-meet
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        T-meet stays small on purpose. Features that add telemetry, outbound network calls, or hosted services are out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Likely phase this lands in
+      options:
+        - "Not sure"
+        - "Phase 09 — Hardening"
+        - "Phase 11 — Ops"
+        - "Post-v1"
+    validations:
+      required: false

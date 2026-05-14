@@ -1,0 +1,270 @@
+# BOOTSTRAP — Self-Hosted Meet Platform
+
+You are Claude Code working in an **empty repository**. Read this file end-to-end before writing anything. This is your single source of truth for the project.
+
+---
+
+## 1. Mission
+
+Build a small, secure, self-hostable video meeting platform.
+
+- **Backend:** Rust, single statically-linked binary (musl), zero runtime dependencies on the target server.
+- **Frontend:** React + TypeScript + Vite + Tailwind, built to static assets and **embedded into the Rust binary** at compile time.
+- **Deploy:** One `tar.gz` containing the binary, a sample config, and a `run.sh`. User extracts on a server with **no internet access and no ability to install packages** and runs it. That's the entire deploy.
+- **Access model:** No domain name. Users open `https://<server-ip>:<port>/r/<room-id>`, enter the room password, join. Self-signed TLS with a one-time CA install on each user's device.
+- **Scale target:** 10–20 participants per room, several concurrent rooms on one server. Architected so larger scale is possible later without a rewrite.
+
+---
+
+## 2. Non-Negotiable Constraints
+
+1. **The production server cannot install anything.** Everything ships pre-built. No `apt`, no `cargo`, no `npm` on the server. Ever.
+2. **Single binary.** `file ./meet-server` must report `statically linked`. No `.so` dependencies. Verified in CI/build script.
+3. **Cross-compiled locally** to `x86_64-unknown-linux-musl` (and optionally `aarch64-unknown-linux-musl`).
+4. **Frontend assets embedded** via `rust-embed` — no separate static directory to ship.
+5. **No OpenSSL.** Use `rustls` everywhere. This is what makes the musl build clean.
+6. **Security is not a phase, it is a constant.** Every endpoint authenticated or explicitly public. Every secret hashed or encrypted. Every input validated. No exceptions.
+7. **Fully automated first-boot.** On first run: generate CA, generate server cert with IP SAN, generate admin token, create SQLite DB with migrations, print the admin token + CA download URL to stdout. **No manual setup steps.**
+8. **No telemetry, no external calls.** Server makes zero outbound network connections. Verifiable.
+
+---
+
+## 3. Locked Tech Stack
+
+Do not substitute these without strong justification written in the corresponding phase doc.
+
+### Backend (Rust)
+
+| Concern | Crate |
+|---|---|
+| HTTP / WebSocket | `axum` |
+| Async runtime | `tokio` |
+| TLS | `rustls`, `tokio-rustls`, `axum-server` (with rustls feature) |
+| Cert generation | `rcgen` |
+| WebRTC / SFU | `webrtc` (the `webrtc-rs` crate) |
+| Embedded assets | `rust-embed` |
+| Storage | `sqlx` with `sqlite` + `runtime-tokio-rustls` features, bundled SQLite |
+| Migrations | `sqlx::migrate!()` — migrations embedded in binary |
+| Password hashing | `argon2` (id variant, sensible params) |
+| Tokens | `paseto` v4 (local/symmetric) — simpler & safer than JWT |
+| Symmetric crypto (at-rest) | `chacha20poly1305` |
+| Key derivation | `argon2` (from admin passphrase) or `hkdf` |
+| Random | `rand` with `OsRng` only — never thread_rng for secrets |
+| Config | `figment` or `serde` + `toml` |
+| Logging | `tracing` + `tracing-subscriber` |
+| Rate limiting | `tower-governor` |
+| Error handling | `thiserror` for libs, `anyhow` for top-level only |
+| CLI | `clap` derive |
+
+### Frontend
+
+| Concern | Library |
+|---|---|
+| Build | Vite |
+| Framework | React 18 + TypeScript (strict) |
+| Styling | Tailwind CSS |
+| Routing | `react-router-dom` |
+| State | Zustand (keep it minimal) |
+| WebRTC | Browser native APIs, no SDK |
+| E2E crypto | `libsodium-wrappers-sumo` |
+| Forms | `react-hook-form` + `zod` |
+| Icons | `lucide-react` |
+
+### Build / Tooling
+
+- `just` (justfile) as the task runner — install instructions documented in README.
+- `cargo`, `rustup` with `x86_64-unknown-linux-musl` target.
+- `node` + `pnpm` (faster, deterministic) for the frontend.
+- `musl-tools` or `cross` for the actual musl link step.
+
+---
+
+## 4. Security Requirements (Read Twice)
+
+These apply across all phases. Violating any of them is a bug.
+
+1. **TLS everywhere.** Plain HTTP listener exists *only* to redirect to HTTPS. WebSocket only over WSS.
+2. **TLS cert covers the configured server IP** via Subject Alternative Name (`IPAddress`). `rcgen` supports this — use it.
+3. **Local CA model:**
+   - On first boot, generate a long-lived local CA keypair, store it encrypted with the admin passphrase-derived key.
+   - Generate a leaf server cert signed by that CA, with the configured IP(s) in SAN.
+   - Expose `GET /ca.crt` (public) so users download and trust the CA once. After that, no browser warnings on that device.
+   - Leaf cert auto-rotates (e.g., 90-day validity, regenerated at 60 days).
+4. **Room passwords:** never stored plaintext. `argon2id` with `m=64MiB, t=3, p=1` minimum. Salt per-room.
+5. **Room join tokens:** PASETO v4 local, max lifetime 12 hours, bound to room id + a per-room secret. Rotated when room is recreated.
+6. **Admin token:** PASETO v4 local, printed once at first boot. Required for room creation and any management endpoint. Never logged.
+7. **DB at rest:** sensitive columns (password hashes are already non-reversible — fine in plaintext; *room metadata, chat history if any, admin notes*) encrypted with `chacha20poly1305` using a key derived from the admin passphrase. The passphrase is **never written to disk** — entered at startup (env var or interactive prompt) and held in memory only.
+8. **Media path:** WebRTC's built-in DTLS-SRTP. The SFU terminates DTLS and re-encrypts to each subscriber. This is standard for SFUs.
+9. **Chat path:** E2E encrypted client-side using libsodium sealed boxes. The server only sees ciphertext. Keys exchanged via the signaling channel using per-participant ephemeral X25519 keypairs.
+10. **Rate limiting:** all auth endpoints (`/join`, `/admin/*`) — 5 attempts per IP per minute, exponential backoff after.
+11. **Headers:** strict CSP (`default-src 'self'; connect-src 'self' wss://<host>; media-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline';`), HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` minimal.
+12. **No PII in logs.** Log room IDs (opaque), participant ephemeral IDs, never IP addresses at info level (debug only and disabled in release builds by default), never passwords or tokens.
+13. **Constant-time comparison** for all token/password verification (`subtle` crate).
+14. **Input validation:** every public input through a `zod` schema (frontend) and `serde` + explicit validators (backend). Reject oversize requests with a body limit middleware (e.g., 1 MiB for JSON endpoints).
+15. **No `unsafe` Rust** unless justified with a comment block. CI denies it by default (`#![forbid(unsafe_code)]` at crate roots).
+
+---
+
+## 5. Your Process
+
+You will work in **two distinct stages**. Do not blur them.
+
+### Stage A — Plan
+
+Create `docs/plan/` and write **one markdown file per phase**:
+
+```
+docs/plan/phase-00-foundation.md
+docs/plan/phase-01-tls-and-crypto.md
+docs/plan/phase-02-http-and-storage.md
+docs/plan/phase-03-rooms-and-auth.md
+docs/plan/phase-04-signaling.md
+docs/plan/phase-05-sfu.md
+docs/plan/phase-06-frontend-shell.md
+docs/plan/phase-07-frontend-webrtc.md
+docs/plan/phase-08-e2e-chat.md
+docs/plan/phase-09-hardening.md
+docs/plan/phase-10-build-and-package.md
+docs/plan/phase-11-first-boot-and-ops.md
+```
+
+Also write `docs/plan/README.md` — index, overall architecture diagram (ASCII is fine), threat model summary, and dependency graph between phases.
+
+**Each phase doc must contain:**
+
+1. **Goal** — one paragraph, what "done" looks like.
+2. **Deliverables** — bulleted list of files/modules created or modified.
+3. **Design decisions** — choices made and *why* (with alternatives rejected).
+4. **Public interfaces** — API endpoints, message schemas, function signatures the rest of the codebase will call. Locked down at planning time so later phases can rely on them.
+5. **Security considerations** — what this phase introduces that affects the security posture, and how it's mitigated. Reference section 4 of this file.
+6. **Test plan** — unit tests, integration tests, manual verification steps.
+7. **Acceptance criteria** — a checklist. Phase isn't done until every box is checked.
+8. **Open questions** — things to revisit (keep this honest; do not leave silent unknowns).
+
+**After writing all phase docs, STOP.** Print a summary of the plan, list any decisions you'd like confirmed, and wait for the user to review before starting implementation. Do not write a single line of Rust or TypeScript during Stage A.
+
+### Stage B — Implement
+
+After the user approves the plan, implement **one phase at a time**, in order. For each phase:
+
+1. Re-read the phase doc.
+2. Implement the deliverables.
+3. Write tests.
+4. Run `just check` (formatter, clippy, eslint, tests) — must pass clean.
+5. Update the phase doc's acceptance checklist with `[x]`.
+6. Commit with message: `phase-NN: <short description>`.
+7. **Stop and summarize.** Tell the user what was built, what was tested, what's next. Wait for "continue" or feedback before moving on.
+
+Do not skip phases. Do not implement phase N+1 while phase N has unchecked acceptance items.
+
+---
+
+## 6. Phase Outlines (Detailed Brief — Expand Each in Stage A)
+
+These are the seeds. Flesh out into full phase docs in Stage A.
+
+### Phase 00 — Foundation
+Cargo workspace (`crates/meet-server`, `crates/meet-core`, `crates/meet-sfu`). Frontend in `frontend/`. Justfile with: `dev`, `build`, `check`, `test`, `package`, `clean`. `.editorconfig`, `rustfmt.toml`, `clippy.toml` (deny warnings on CI), `.gitignore`, `LICENSE` (placeholder), `README.md` with quick-start. Config schema (`config.toml`) with sensible defaults. Tracing/logging skeleton. CI-equivalent local script.
+
+### Phase 01 — TLS & Crypto Foundation
+`rcgen`-based CA generation. Persist CA cert + (encrypted) key. Leaf cert issuance with IP SAN. `rustls` server config. Cert auto-rotation logic (with tests using a frozen clock). Admin passphrase intake (env var `MEET_ADMIN_PASSPHRASE` or interactive). Key derivation (argon2id → 32-byte key). On-disk encryption helpers (`chacha20poly1305`). `/ca.crt` public endpoint (returns DER or PEM, served with correct mime type).
+
+### Phase 02 — HTTP Server & Storage
+`axum` app with TLS listener via `axum-server`. Plain HTTP listener on a separate port that 301s to HTTPS. `rust-embed` setup; fallback route serves embedded frontend (with SPA-friendly 404→index.html). SQLite via `sqlx`. Embedded migrations: tables `rooms`, `participants` (ephemeral, possibly in-memory only — decide and document), `audit_log`. Body-size limits, request-id middleware, structured access logs (no IPs at info).
+
+### Phase 03 — Rooms & Auth
+Admin token model. Endpoints:
+- `POST /admin/rooms` (admin token) → create room, returns `{ id, join_url, password }` (server generates a strong password unless one is provided).
+- `DELETE /admin/rooms/:id` (admin token).
+- `GET /admin/rooms` (admin token) → list.
+- `POST /r/:id/join` (public, rate-limited) → body `{ password, display_name }`; returns `{ join_token, ice_servers, sfu_ws_url }`.
+PASETO local tokens, room-bound, short TTL. argon2id password verification with `subtle` constant-time compare. Audit log entries for all admin actions.
+
+### Phase 04 — Signaling
+`GET /ws` upgraded to WSS with `join_token` in the first message (not the query string — query strings end up in logs). Message protocol: JSON, versioned, schemas in `crates/meet-core`. Messages: `Join`, `Joined`, `PeerJoined`, `PeerLeft`, `Offer`, `Answer`, `IceCandidate`, `Chat` (ciphertext only), `Error`, `Ping`/`Pong`. State machine per connection. Heartbeat with idle disconnect. Backpressure handling.
+
+### Phase 05 — SFU
+`webrtc-rs` integration. One `PeerConnection` per participant. Per-room state: track registry, subscriptions. Forward audio + video tracks from publishers to all subscribers. Bandwidth: start without simulcast (simple), document a path to add it. Graceful cleanup on disconnect. Connection-state tracing. Load test target: 4 rooms × 15 participants on a modest VPS.
+
+### Phase 06 — Frontend Shell
+Vite + React + TS strict + Tailwind. Routes: `/` (landing — minimal, just a "join a meeting" form), `/r/:id` (room), `/setup` (one-time CA download instructions page). Zustand store for app state. Toast/notification primitive. Tailwind config with a restrained palette. Loading states. Error boundary. Build outputs to `frontend/dist`, which Rust embeds.
+
+### Phase 07 — Frontend WebRTC
+RTCPeerConnection lifecycle, signaling integration, getUserMedia. Video grid component (CSS grid, auto-layout for 1–20 tiles). Controls: mute, camera off, leave. Connection quality indicator per peer. Active speaker detection (audio level). Reconnect logic with exponential backoff. Permission denial flows.
+
+### Phase 08 — E2E Chat
+libsodium-wrappers in the browser. Each participant generates an ephemeral X25519 keypair on room join; public key shared via signaling (`Joined` / `PeerJoined`). Chat messages: sealed boxes per recipient (or group encryption via shared room key rotated on join/leave — choose and document trade-offs in the phase doc; sealed-box-per-recipient is simpler for 10–20). Server only sees ciphertext + recipient hints. Local UI: chat panel, send/receive, scrollback in-memory only (no server persistence).
+
+### Phase 09 — Hardening
+`tower-governor` rate limiting. CSP and full security header stack. CSRF for any state-changing non-WS POST (admin endpoints). Dependency audit (`cargo deny`, `pnpm audit`). Fuzz target for signaling parser (`cargo-fuzz` setup, doesn't need to run in CI). Penetration test checklist in `docs/security/checklist.md`. Threat model doc updated.
+
+### Phase 10 — Build & Package
+`just package` produces `dist/meet-platform-<version>-<arch>.tar.gz` containing:
+```
+meet-server                # static musl binary
+config.example.toml
+run.sh                     # see Phase 11
+docs/INSTALL.md
+docs/CA-TRUST.md           # how end-users trust the CA
+LICENSE
+```
+Build script verifies static linking via `file` and `ldd`. Refuses to package if either reports dynamic deps. Frontend built and embedded as part of the cargo build (`build.rs` or pre-build just step). Reproducible-ish builds (`SOURCE_DATE_EPOCH` honored).
+
+### Phase 11 — First-Boot & Ops
+`run.sh` workflow:
+1. Check for `data/` directory; if absent, this is first boot.
+2. Prompt for admin passphrase (or read `MEET_ADMIN_PASSPHRASE`).
+3. Run `meet-server init` — generates CA, server cert, admin token, DB, prints:
+   - The admin token (shown ONCE).
+   - The CA download URL.
+   - The setup page URL with copy-paste instructions for end users.
+4. Start `meet-server serve`.
+On subsequent boots: passphrase prompt only, then serve. Document a systemd unit for users who want it (not required for it to work — `nohup ./run.sh &` is supported). Backup guidance (it's one SQLite file + the `data/` dir).
+
+---
+
+## 7. Coding Standards
+
+- **Rust:** `#![forbid(unsafe_code)]` at every crate root. `clippy::pedantic` with documented allows. Errors via `thiserror` enums per module; no string errors in libraries. No `.unwrap()` or `.expect()` outside tests and `main`/`init` startup paths — and even those expects must have descriptive messages.
+- **TypeScript:** `strict: true`. No `any` (use `unknown` + narrow). Components small and focused. Hooks for logic, not for layout.
+- **Modules over files.** A module gets split into a folder once it crosses ~400 lines.
+- **Tests live next to code** in Rust (`#[cfg(test)] mod tests`). Frontend tests in `__tests__/` next to the component (Vitest).
+- **Comments explain *why*, not *what*.** If a "what" comment is needed, the code is probably wrong.
+- **Commits are atomic and on-message.** One logical change per commit. Conventional-ish: `phase-NN: <area>: <verb> <thing>`.
+
+---
+
+## 8. What "Done" Looks Like for the Whole Project
+
+- `just package` on a developer laptop produces a single `.tar.gz`.
+- That tarball is copied to a fresh Linux VM with **no internet** and **no installed packages beyond a base OS**.
+- User extracts it, sets `MEET_ADMIN_PASSPHRASE`, runs `./run.sh`.
+- Server prints the admin token, CA URL, and setup URL.
+- User on a laptop visits `https://<ip>:<port>/setup`, downloads the CA, trusts it (instructions per OS).
+- User creates a room via the admin token (a CLI helper or the `/setup` page — decide in Phase 03).
+- User opens `https://<ip>:<port>/r/<room-id>` on multiple devices, enters the password, video/audio/chat work between all of them.
+- No browser security warnings on devices that trusted the CA.
+- `file meet-server` says `statically linked`.
+- `ss -tnp` on the server shows zero outbound connections from the process.
+- No dependency on the host server's package state.
+
+---
+
+## 9. First Action
+
+1. Acknowledge you have read this file.
+2. Ask any **clarifying questions you genuinely need answered before planning** — but only real blockers, not nice-to-haves.
+3. Begin Stage A: write `docs/plan/README.md` and `docs/plan/phase-00-foundation.md` through `phase-11-first-boot-and-ops.md`.
+4. Stop and present the plan for review.
+
+Do not begin Stage B until told to.
+
+Begin.
+
+
+
+this is what i want and you can connect with ssh git repo of it and create a main branch for it with all skills and mcps and anything like playwright any plugin any ... things you need for deploy test and do it in best practice structure and code and service management.
+we need a plan for create workspace and /docs/plan with all .md files you need or any other file is important for this project as a opensource project in repo and ...
+so plan fully for this and choose by yourslef best things after plan ready i will tell you start it.
+
+git@github.com:aturzone/T-meet.git

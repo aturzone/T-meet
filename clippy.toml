@@ -1,0 +1,21 @@
+msrv = "1.78"
+
+# unwrap/expect are red flags outside tests and startup paths. CI enforces.
+# These are *guidance* — actual enforcement is via `cargo clippy -- -D ...` and
+# `#![forbid(...)]` attributes at crate roots. Listed here so editors flag early.
+avoid-breaking-exported-api = false
+disallowed-methods = [
+    { path = "std::option::Option::unwrap", reason = "use ? or expect with a descriptive message" },
+    { path = "std::result::Result::unwrap", reason = "use ? or expect with a descriptive message" },
+    { path = "std::option::Option::expect", reason = "allowed only in tests and program-startup paths" },
+    { path = "std::result::Result::expect", reason = "allowed only in tests and program-startup paths" },
+    { path = "rand::thread_rng",          reason = "never use thread_rng for secrets — use OsRng" },
+]
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "prefer indexmap::IndexMap or ahash::AHashMap for stable iteration / DoS-resistant hashing" },
+]
+allow-print-in-tests = true
+arithmetic-side-effects-allowed = ["std::time::Duration"]
+cognitive-complexity-threshold = 30
+type-complexity-threshold = 250
+too-many-arguments-threshold = 6

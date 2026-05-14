@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a defect in T-meet
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Do not include the admin token, room passwords, or join tokens.
+
+  - type: input
+    id: version
+    attributes:
+      label: T-meet version
+      placeholder: e.g. v1.0.0 or commit sha
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Server OS
+      placeholder: e.g. Ubuntu 22.04
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: e.g. Brave 1.66, Chromium 124
+    validations:
+      required: false
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste server logs, browser console, or x-request-id values. Redact any tokens.
+      render: text
+    validations:
+      required: false

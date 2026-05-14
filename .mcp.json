@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--executable-path",
+        "/snap/brave/current/opt/brave.com/brave/brave",
+        "--no-sandbox",
+        "--ignore-https-errors",
+        "--headless",
+        "--browser-arg=--use-fake-ui-for-media-stream",
+        "--browser-arg=--use-fake-device-for-media-stream"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/atur/projects/T-meet"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    }
+  }
+}

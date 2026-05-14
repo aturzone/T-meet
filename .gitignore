@@ -1,0 +1,72 @@
+# Rust
+/target/
+**/target/
+*.rs.bk
+Cargo.lock.bak
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Build artifacts
+/dist/
+*.tar.gz
+*.tar.zst
+*.tgz
+
+# Runtime data — never committed
+/data/
+**/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+
+# Secrets — never committed
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+!ca.example.crt
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+coverage/
+*.profraw
+*.profdata
+test-results/
+playwright-report/
+.playwright/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.Trash-*
+ehthumbs.db
+Desktop.ini
+
+# Direnv / local overrides
+.envrc
+.direnv/
+
+# Cargo deny / audit caches
+.cargo/registry/
+.cargo/git/
+
+# CI artifacts copied locally
+artifacts/
