@@ -35,3 +35,10 @@ zeroize = { workspace = true }
 secrecy = { workspace = true }
 rcgen = { workspace = true }
 x509-parser = { workspace = true }
+
+# Phase 02 storage
+sqlx = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -1,19 +1,19 @@
-//! `meet-server serve` — load the CA + leaf and run an HTTPS listener.
-//!
-//! Phase 01 surface: just `GET /healthz` and `GET /ca.crt`. Phase 02 grows the
-//! router; the construction shape here stays.
+//! `meet-server serve` — load the CA + leaf, open the DB, run two listeners:
+//! - HTTPS (axum-server + rustls) — the real surface.
+//! - Plain-HTTP — 301s everything to HTTPS, plus serves `/ca.crt` so first-time
+//!   trust works on devices that don't yet trust the CA.
 
 use std::net::SocketAddr;
+use std::sync::Arc;
 
-use axum::routing::get;
-use axum::Router;
 use axum_server::tls_rustls::RustlsConfig;
 use meet_core::config::Config;
+use meet_core::db::Db;
 use secrecy::{ExposeSecret, SecretBox};
 
+use crate::app::{build_app, build_redirect_app, AppState};
 use crate::init::{load_or_rotate, InitError};
 use crate::paths::DataPaths;
-use crate::routes::{ca, ca::CaSource, health};
 use crate::tls::{build_server_config, TlsError};
 
 #[derive(Debug, thiserror::Error)]
@@ -26,34 +26,64 @@ pub enum ServeError {
 
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("db: {0}")]
+    Db(#[from] meet_core::db::DbError),
 }
 
 pub async fn run_serve(cfg: Config, passphrase: SecretBox<String>) -> Result<(), ServeError> {
-    let paths = DataPaths::new(&cfg.storage.data_dir);
+    let paths = Arc::new(DataPaths::new(&cfg.storage.data_dir));
     let loaded = load_or_rotate(&cfg, &passphrase)?;
     drop(passphrase);
+
+    let db_path = paths.root.join("meet.db");
+    let db = Arc::new(Db::open(&db_path).await?);
+    tracing::info!(db = %db_path.display(), "database open");
 
     let server_cfg =
         build_server_config(&loaded.leaf.cert_pem, loaded.leaf.key_pem.expose_secret())?;
     let rustls_cfg = RustlsConfig::from_config(server_cfg);
 
-    let app: Router = Router::new().route("/healthz", get(health::handler)).route(
-        "/ca.crt",
-        get(ca::handler).with_state(CaSource {
-            path: paths.ca_public_pem(),
-        }),
-    );
+    let state = AppState {
+        db: db.clone(),
+        paths: paths.clone(),
+    };
+    let app = build_app(state);
 
-    let addr = SocketAddr::new(cfg.server.bind_ip, cfg.server.tls_port);
+    let tls_listener_addr = SocketAddr::new(cfg.server.bind_ip, cfg.server.tls_port);
+    let redirect_listener_addr = SocketAddr::new(cfg.server.bind_ip, cfg.server.http_redirect_port);
+
+    let host = cfg
+        .server
+        .external_host
+        .clone()
+        .unwrap_or_else(|| cfg.server.bind_ip.to_string());
+
+    let redirect_app = build_redirect_app(host.clone(), cfg.server.tls_port, paths.ca_public_pem());
+
     tracing::info!(
-        bind = %addr,
-        http_redirect_port = cfg.server.http_redirect_port,
-        "serving https"
+        https = %tls_listener_addr,
+        http_redirect = %redirect_listener_addr,
+        external_host = %host,
+        "listeners up"
     );
 
-    axum_server::bind_rustls(addr, rustls_cfg)
-        .serve(app.into_make_service())
-        .await?;
+    let https = tokio::spawn(async move {
+        axum_server::bind_rustls(tls_listener_addr, rustls_cfg)
+            .serve(app.into_make_service())
+            .await
+    });
+
+    let http = tokio::spawn(async move {
+        axum_server::bind(redirect_listener_addr)
+            .serve(redirect_app.into_make_service())
+            .await
+    });
+
+    tokio::select! {
+        r = https => r.map_err(std::io::Error::other)??,
+        r = http  => r.map_err(std::io::Error::other)??,
+    }
 
     Ok(())
 }

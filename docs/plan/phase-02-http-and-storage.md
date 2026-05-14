@@ -143,14 +143,14 @@ pub async fn append_audit(db: &Db, e: &AuditEntry) -> Result<(), DbError>;
 
 ## Acceptance criteria
 
-- [ ] `meet-server serve` listens on the configured TLS port and a redirect-only HTTP port.
-- [ ] All routes above return the documented status codes and content types in integration tests.
-- [ ] `data/meet.db` is created with mode 0600 and the migration set applied.
-- [ ] `sqlx prepare` is rerun and `.sqlx/` is committed.
-- [ ] Access log lines at info level contain no IP addresses.
-- [ ] `tower-http` `RequestBodyLimitLayer` rejects oversized POSTs with 413.
-- [ ] Baseline security headers present on every response.
-- [ ] `just check` is green.
+- [x] `meet-server serve` listens on the configured TLS port and a redirect-only HTTP port.
+- [x] All routes above return the documented status codes and content types in integration tests.
+- [x] `data/meet.db` is created with mode 0600 and the migration set applied.
+- [x] `sqlx prepare` is rerun and `.sqlx/` is committed.
+- [x] Access log lines at info level contain no IP addresses.
+- [x] `tower-http` `RequestBodyLimitLayer` rejects oversized POSTs with 413.
+- [x] Baseline security headers present on every response.
+- [x] `just check` is green.
 
 ## Open questions
 

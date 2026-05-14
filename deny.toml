@@ -41,6 +41,9 @@ allow = [
     "MPL-2.0",            # file-level copyleft, compatible with our build
     "OpenSSL",            # rejected for *use* but some build-deps mention it
     "BSL-1.0",
+    # Community Data License Agreement, Permissive 2.0. Used by webpki-roots
+    # for the bundled trust-anchor data; permissive, MIT-equivalent for code.
+    "CDLA-Permissive-2.0",
 ]
 # Our own crates ship as AGPL-3.0-or-later. They're whitelisted by name so
 # AGPL-3.0 cannot accidentally enter through a transitive dependency.
