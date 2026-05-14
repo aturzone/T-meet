@@ -25,6 +25,8 @@ pub struct AppState {
     pub rate_limiter: Arc<rate_limit::RateLimiter>,
     pub room_hub: Arc<RoomHub>,
     pub sfu: Arc<dyn SfuPort>,
+    pub bind_ip: std::net::IpAddr,
+    pub external_host: Option<String>,
 }
 
 impl std::fmt::Debug for AppState {

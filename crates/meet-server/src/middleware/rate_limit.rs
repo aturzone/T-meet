@@ -25,6 +25,12 @@ pub const JOIN_WINDOW: Duration = Duration::from_secs(60);
 pub const ADMIN_LIMIT: u32 = 30;
 pub const ADMIN_WINDOW: Duration = Duration::from_secs(60);
 
+/// 20 chat fan-outs / minute per pid. Server-side limit prevents one
+/// participant from drowning the room. The chat handler in `conn::handle_
+/// client_msg` consults this before fanning out.
+pub const CHAT_LIMIT: u32 = 20;
+pub const CHAT_WINDOW: Duration = Duration::from_secs(60);
+
 #[derive(Debug)]
 struct Bucket {
     window_started: Instant,

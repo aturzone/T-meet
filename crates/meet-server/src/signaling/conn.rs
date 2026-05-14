@@ -326,6 +326,24 @@ impl Handler {
                         .await;
                     return Err("chat too large");
                 }
+                // Server-side fan-out rate limit (Phase 09).
+                let decision = self.state.rate_limiter.check(
+                    std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+                    &format!("chat:{pid}"),
+                    crate::middleware::rate_limit::CHAT_LIMIT,
+                    crate::middleware::rate_limit::CHAT_WINDOW,
+                );
+                if matches!(
+                    decision,
+                    crate::middleware::rate_limit::Decision::Deny { .. }
+                ) {
+                    self.state.room_hub.send_to(
+                        &self.room_id,
+                        &pid,
+                        ServerMsg::error(CloseCode::Backpressure, "chat rate limit"),
+                    );
+                    return Ok(());
+                }
                 let out = ServerMsg::chat(ciphertext, nonce, pid.clone());
                 if to == "all" {
                     self.state.room_hub.broadcast(&self.room_id, &pid, out);

@@ -7,21 +7,29 @@ use axum::http::{header, HeaderName, HeaderValue};
 use axum::middleware::Next;
 use axum::response::Response;
 
+// Phase 09 final CSP. `'self'` covers wss: on the same origin too, but
+// some browsers want the protocol spelled out — `connect-src 'self' wss:`
+// makes the intent explicit for the signaling channel.
 const CSP_VALUE: &str = concat!(
     "default-src 'self'; ",
-    "connect-src 'self'; ",
+    "connect-src 'self' wss:; ",
     "media-src 'self' blob:; ",
     "img-src 'self' data: blob:; ",
     "style-src 'self' 'unsafe-inline'; ",
     "script-src 'self'; ",
+    "worker-src 'self' blob:; ",
     "frame-ancestors 'none'; ",
     "base-uri 'self'; ",
     "form-action 'self'; ",
     "object-src 'none'",
 );
 
-const PERMISSIONS_POLICY: &str =
-    "camera=(self), microphone=(self), geolocation=(), interest-cohort=()";
+// `clipboard-write=()` blocks programmatic clipboard writes; chat copy/paste
+// works via the user-initiated paste/copy events which aren't gated by this.
+const PERMISSIONS_POLICY: &str = concat!(
+    "camera=(self), microphone=(self), geolocation=(), ",
+    "interest-cohort=(), clipboard-write=(), payment=(), usb=()",
+);
 
 pub async fn middleware(req: Request, next: Next) -> Response {
     let mut resp = next.run(req).await;

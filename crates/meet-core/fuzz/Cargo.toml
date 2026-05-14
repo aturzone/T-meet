@@ -1,0 +1,21 @@
+[package]
+name = "meet-core-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = { workspace = true }
+meet-core = { path = ".." }
+
+# Prevent cargo from being confused by the workspace.
+[[bin]]
+name = "signaling_parse"
+path = "fuzz_targets/signaling_parse.rs"
+test = false
+doc = false
+bench = false

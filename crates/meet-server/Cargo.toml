@@ -58,6 +58,9 @@ base64 = { workspace = true }
 # Phase 04
 futures = "0.3"
 async-trait = { workspace = true }
+
+# Phase 09
+url = "2.5"
 axum = { workspace = true }
 axum-server = { workspace = true }
 tower = { workspace = true }

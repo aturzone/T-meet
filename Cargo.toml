@@ -5,6 +5,11 @@ members = [
     "crates/meet-server",
     "crates/meet-sfu",
 ]
+exclude = [
+    # cargo-fuzz uses nightly + libfuzzer-sys; excluded so workspace
+    # compiles on stable.
+    "crates/meet-core/fuzz",
+]
 
 [workspace.package]
 version = "0.1.0"

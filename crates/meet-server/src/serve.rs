@@ -55,6 +55,8 @@ pub async fn run_serve(cfg: Config, passphrase: SecretBox<String>) -> Result<(),
         sfu: Arc::new(
             meet_sfu::Sfu::new_default().map_err(|e| std::io::Error::other(e.to_string()))?,
         ),
+        bind_ip: cfg.server.bind_ip,
+        external_host: cfg.server.external_host.clone(),
     };
     let app = build_app(state);
 
