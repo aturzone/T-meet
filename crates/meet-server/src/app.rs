@@ -3,11 +3,13 @@
 use std::sync::Arc;
 
 use axum::http::Method;
-use axum::routing::get;
+use axum::routing::{delete, get, post};
 use axum::{middleware as mw, Router};
 use meet_core::db::Db;
 
-use crate::middleware::{access_log, body_limit, request_id, security_headers};
+use crate::middleware::{
+    access_log, admin_auth, body_limit, rate_limit, request_id, security_headers,
+};
 use crate::paths::DataPaths;
 use crate::routes;
 
@@ -16,6 +18,9 @@ use crate::routes;
 pub struct AppState {
     pub db: Arc<Db>,
     pub paths: Arc<DataPaths>,
+    pub admin_secret: Arc<[u8; 32]>,
+    pub at_rest_key: Arc<[u8; 32]>,
+    pub rate_limiter: Arc<rate_limit::RateLimiter>,
 }
 
 impl std::fmt::Debug for AppState {
@@ -25,6 +30,17 @@ impl std::fmt::Debug for AppState {
 }
 
 pub fn build_app(state: AppState) -> Router {
+    let admin_routes = Router::new()
+        .route("/rooms", post(routes::admin::create_room))
+        .route("/rooms", get(routes::admin::list_rooms))
+        .route("/rooms/:id", get(routes::admin::get_room))
+        .route("/rooms/:id", delete(routes::admin::delete_room))
+        .layer(mw::from_fn_with_state(
+            state.clone(),
+            admin_auth::middleware,
+        ))
+        .with_state(state.clone());
+
     Router::new()
         .route("/healthz", get(routes::health::handler))
         .route(
@@ -33,6 +49,8 @@ pub fn build_app(state: AppState) -> Router {
                 path: state.paths.ca_public_pem(),
             }),
         )
+        .route("/r/:id/join", post(routes::rooms_public::join))
+        .nest("/admin", admin_routes)
         .fallback(routes::assets::handler)
         .layer(body_limit::json_layer())
         .layer(mw::from_fn(security_headers::middleware))

@@ -132,15 +132,15 @@ pub fn verify_room(room_secret: &[u8; 32], room_id: &str, token: &str,
 
 ## Acceptance criteria
 
-- [ ] All admin endpoints documented above are implemented and tested.
-- [ ] `/r/:id/join` returns the documented shape and the token verifies against the room secret.
-- [ ] Rate limiting returns 429 on the 6th attempt within a minute per `(ip, room_id)`.
-- [ ] Constant-time compare in token verification and password verification (grep for `subtle::ConstantTimeEq`).
-- [ ] Audit log row written for every admin action and every join attempt (success and failure).
-- [ ] No password, token, or IP appears in any log line at info level.
-- [ ] Generic 401 for unknown-room vs. wrong-password.
-- [ ] `meet-server init` prints the admin token once and never again.
-- [ ] `just check` is green.
+- [x] All admin endpoints documented above are implemented and tested.
+- [x] `/r/:id/join` returns the documented shape and the token verifies against the room secret.
+- [x] Rate limiting returns 429 on the 6th attempt within a minute per `(ip, room_id)`.
+- [x] Constant-time compare in token verification and password verification (grep for `subtle::ConstantTimeEq`).
+- [x] Audit log row written for every admin action and every join attempt (success and failure).
+- [x] No password, token, or IP appears in any log line at info level.
+- [x] Generic 401 for unknown-room vs. wrong-password.
+- [x] `meet-server init` prints the admin token once and never again.
+- [x] `just check` is green.
 
 ## Open questions
 

@@ -42,7 +42,7 @@ fn run_init_cmd() -> ExitCode {
     };
     match init::run_init(&cfg, &pp) {
         Ok(out) => {
-            print_first_boot_banner(&cfg, &out.leaf_fingerprint_sha256);
+            print_first_boot_banner(&cfg, &out.leaf_fingerprint_sha256, &out.admin_token);
             ExitCode::SUCCESS
         },
         Err(e) => {
@@ -98,7 +98,7 @@ fn load_or_default() -> Config {
     }
 }
 
-fn print_first_boot_banner(cfg: &Config, leaf_fingerprint: &str) {
+fn print_first_boot_banner(cfg: &Config, leaf_fingerprint: &str, admin_token: &str) {
     let host = cfg
         .server
         .external_host
@@ -109,13 +109,17 @@ fn print_first_boot_banner(cfg: &Config, leaf_fingerprint: &str) {
     println!("================================================================");
     println!("T-meet — first-boot setup complete");
     println!();
+    println!("  Admin token (save this — it is shown ONCE):");
+    println!("    {admin_token}");
+    println!();
     println!("  Download the CA cert and trust it on every device that will join:");
     println!("    https://{host}:{port}/ca.crt");
     println!();
+    println!("  Send users this setup page:");
+    println!("    https://{host}:{port}/setup");
+    println!();
     println!("  Leaf cert SHA-256 fingerprint (compare with browser):");
     println!("    {leaf_fingerprint}");
-    println!();
-    println!("  Admin token + setup URL will be printed by Phase 03 (rooms/auth).");
     println!("================================================================");
     println!();
 }

@@ -33,4 +33,16 @@ impl DataPaths {
     pub fn leaf_key_pem(&self) -> PathBuf {
         self.root.join("leaf.key")
     }
+
+    /// Encrypted blob holding the per-server admin secret.
+    #[must_use]
+    pub fn admin_secret_blob(&self) -> PathBuf {
+        self.root.join("admin.bin")
+    }
+
+    /// `SQLite` database.
+    #[must_use]
+    pub fn db_file(&self) -> PathBuf {
+        self.root.join("meet.db")
+    }
 }

@@ -35,11 +35,16 @@ pub enum InitError {
 
     #[error("crypto: {0}")]
     Crypto(#[from] meet_core::crypto::CryptoError),
+
+    #[error("auth: {0}")]
+    Auth(String),
 }
 
 #[derive(Debug)]
 pub struct InitOutput {
     pub leaf_fingerprint_sha256: String,
+    /// Admin token, shown once on stdout. Never logged.
+    pub admin_token: String,
 }
 
 /// Run the init workflow against a config and the supplied passphrase.
@@ -76,14 +81,37 @@ pub fn run_init(cfg: &Config, passphrase: &SecretBox<String>) -> Result<InitOutp
         leaf.key_pem.expose_secret().as_bytes(),
     )?;
 
+    // Admin secret + admin token.
+    let admin_secret = crate::admin_secret::generate();
+    crate::admin_secret::write(
+        &paths.admin_secret_blob(),
+        &admin_secret,
+        key.expose_secret(),
+    )
+    .map_err(|e| match e {
+        crate::admin_secret::AdminSecretError::Io(io) => InitError::Io(io),
+        crate::admin_secret::AdminSecretError::Crypto(c) => InitError::Crypto(c),
+        crate::admin_secret::AdminSecretError::Malformed => {
+            InitError::Crypto(meet_core::crypto::CryptoError::Aead)
+        },
+    })?;
+    let admin_token = meet_core::auth::token::issue_admin(
+        &admin_secret,
+        std::time::SystemTime::now(),
+        meet_core::auth::token::ADMIN_TTL_MAX,
+    )
+    .map_err(|e| InitError::Auth(e.to_string()))?;
+
     tracing::info!(
         ca_blob = %paths.ca_blob().display(),
         leaf = %paths.leaf_cert_pem().display(),
+        admin_blob = %paths.admin_secret_blob().display(),
         "first-boot artifacts written"
     );
 
     Ok(InitOutput {
         leaf_fingerprint_sha256: sha256_fingerprint(&leaf.cert_pem)?,
+        admin_token,
     })
 }
 
@@ -92,10 +120,14 @@ pub fn run_init(cfg: &Config, passphrase: &SecretBox<String>) -> Result<InitOutp
 pub struct LoadedTls {
     #[allow(
         dead_code,
-        reason = "consumed by Phase 03 for per-room secret derivation"
+        reason = "Phase 03+ may need direct CA access for advanced flows"
     )]
     pub ca: CaMaterial,
     pub leaf: LeafMaterial,
+    pub admin_secret: [u8; 32],
+    /// Admin-passphrase-derived key (kept alive only as long as `LoadedTls`).
+    /// Used to seal per-room secrets at room-creation time.
+    pub at_rest_key: [u8; 32],
 }
 
 pub fn load_or_rotate(
@@ -137,7 +169,22 @@ pub fn load_or_rotate(
         },
     };
 
-    Ok(LoadedTls { ca, leaf })
+    let at_rest_key = *key.expose_secret();
+    let admin_secret = crate::admin_secret::read(&paths.admin_secret_blob(), &at_rest_key)
+        .map_err(|e| match e {
+            crate::admin_secret::AdminSecretError::Io(io) => InitError::Io(io),
+            crate::admin_secret::AdminSecretError::Crypto(c) => InitError::Crypto(c),
+            crate::admin_secret::AdminSecretError::Malformed => {
+                InitError::Crypto(meet_core::crypto::CryptoError::Aead)
+            },
+        })?;
+
+    Ok(LoadedTls {
+        ca,
+        leaf,
+        admin_secret,
+        at_rest_key,
+    })
 }
 
 struct SanForConfig {
@@ -208,7 +255,7 @@ fn chmod_dir_700(_p: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(unix)]
-fn write_file_0600(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub(crate) fn write_file_0600(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::os::unix::fs::OpenOptionsExt;
     let mut f = fs::OpenOptions::new()
         .create(true)
@@ -221,6 +268,6 @@ fn write_file_0600(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 }
 
 #[cfg(not(unix))]
-fn write_file_0600(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub(crate) fn write_file_0600(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     fs::write(path, bytes)
 }

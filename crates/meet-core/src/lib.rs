@@ -9,10 +9,12 @@
 //! - `auth` (Phase 03)
 //! - `signaling` (Phase 04)
 
+pub mod auth;
 pub mod config;
 pub mod crypto;
 pub mod db;
 pub mod error;
+pub mod ids;
 pub mod log;
 
 pub use error::Error;

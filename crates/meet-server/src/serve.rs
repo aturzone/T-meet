@@ -13,6 +13,7 @@ use secrecy::{ExposeSecret, SecretBox};
 
 use crate::app::{build_app, build_redirect_app, AppState};
 use crate::init::{load_or_rotate, InitError};
+use crate::middleware::rate_limit::RateLimiter;
 use crate::paths::DataPaths;
 use crate::tls::{build_server_config, TlsError};
 
@@ -47,6 +48,9 @@ pub async fn run_serve(cfg: Config, passphrase: SecretBox<String>) -> Result<(),
     let state = AppState {
         db: db.clone(),
         paths: paths.clone(),
+        admin_secret: Arc::new(loaded.admin_secret),
+        at_rest_key: Arc::new(loaded.at_rest_key),
+        rate_limiter: Arc::new(RateLimiter::new()),
     };
     let app = build_app(state);
 
@@ -70,7 +74,7 @@ pub async fn run_serve(cfg: Config, passphrase: SecretBox<String>) -> Result<(),
 
     let https = tokio::spawn(async move {
         axum_server::bind_rustls(tls_listener_addr, rustls_cfg)
-            .serve(app.into_make_service())
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
             .await
     });
 
