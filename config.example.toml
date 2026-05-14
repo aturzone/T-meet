@@ -1,0 +1,26 @@
+# T-meet — example configuration. Copy to config.toml and edit.
+
+[server]
+# IP to bind. Use 0.0.0.0 to accept on every interface, or a specific LAN IP.
+bind_ip = "0.0.0.0"
+
+# HTTPS port (the only port end-users speak to after first-boot CA trust).
+tls_port = 8443
+
+# Plain HTTP port that 301s to HTTPS (plus serves /ca.crt for first-time trust).
+http_redirect_port = 8080
+
+# Optional public hostname for the leaf cert and the URLs printed at first boot.
+# When unset, the bind_ip is used.
+# external_host = "meet.example.lan"
+
+[storage]
+# All persistent state lives here. Sized to a SQLite file plus the CA blob.
+data_dir = "data"
+
+[log]
+# tracing EnvFilter syntax; overridable via RUST_LOG.
+level = "info"
+
+# "pretty" for humans, "json" for shipping to a log aggregator.
+format = "pretty"

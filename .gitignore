@@ -12,6 +12,11 @@ frontend/dist/
 frontend/.vite/
 frontend/coverage/
 
+# TypeScript build artifacts
+*.tsbuildinfo
+# vite config compiled artifact (we use vite.config.ts, never check in the .js)
+frontend/vite.config.js
+
 # Build artifacts
 /dist/
 *.tar.gz

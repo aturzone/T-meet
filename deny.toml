@@ -39,8 +39,13 @@ allow = [
     "OpenSSL",            # rejected for *use* but some build-deps mention it
     "BSL-1.0",
 ]
-exceptions = []
-# Project itself is AGPL-3.0 — declared in Cargo.toml during Phase 00.
+# Our own crates ship as AGPL-3.0-or-later. They're whitelisted by name so
+# AGPL-3.0 cannot accidentally enter through a transitive dependency.
+exceptions = [
+    { name = "meet-core",   allow = ["AGPL-3.0-or-later"] },
+    { name = "meet-server", allow = ["AGPL-3.0-or-later"] },
+    { name = "meet-sfu",    allow = ["AGPL-3.0-or-later"] },
+]
 
 [[licenses.clarify]]
 crate = "ring"
@@ -53,6 +58,9 @@ license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# Path/git dependencies inside the workspace appear as "*" — allowed.
+# Crates.io wildcards still rejected.
+allow-wildcard-paths = true
 highlight = "all"
 
 deny = [

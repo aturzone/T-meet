@@ -52,18 +52,18 @@ Establish the workspace skeleton so every later phase has a place to put code. A
 
 ## Acceptance criteria
 
-- [ ] `cargo build --workspace` succeeds.
-- [ ] `cargo test --workspace` passes with at least one test per crate.
-- [ ] `cargo clippy --workspace --all-targets -- -D warnings` is clean.
-- [ ] `cargo fmt --check` is clean.
-- [ ] `cargo deny check` is clean.
-- [ ] `pnpm -C frontend install --frozen-lockfile` succeeds.
-- [ ] `pnpm -C frontend build` produces `frontend/dist/index.html`.
-- [ ] `pnpm -C frontend typecheck` and `lint` are clean.
-- [ ] `just check` runs all of the above in one command.
-- [ ] `tracing` is wired in `meet-server` (no `println!` anywhere except the placeholder `main` if needed — and that placeholder is removed by Phase 01).
-- [ ] `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml`, `deny.toml` all referenced by CI.
-- [ ] CHANGELOG `[Unreleased]` notes phase-00 landing.
+- [x] `cargo build --workspace` succeeds.
+- [x] `cargo test --workspace` passes with at least one test per crate.
+- [x] `cargo clippy --workspace --all-targets -- -D warnings` is clean.
+- [x] `cargo fmt --check` is clean.
+- [x] `cargo deny check` is clean.
+- [x] `pnpm -C frontend install --frozen-lockfile` succeeds.
+- [x] `pnpm -C frontend build` produces `frontend/dist/index.html`.
+- [x] `pnpm -C frontend typecheck` and `lint` are clean.
+- [x] `just check` runs all of the above in one command.
+- [x] `tracing` is wired in `meet-server` (no `println!` anywhere except the placeholder `main` if needed — and that placeholder is removed by Phase 01).
+- [x] `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml`, `deny.toml` all referenced by CI.
+- [x] CHANGELOG `[Unreleased]` notes phase-00 landing.
 
 ## Open questions
 

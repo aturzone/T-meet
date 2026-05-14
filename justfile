@@ -1,6 +1,6 @@
-# T-meet task runner. Each recipe is a TODO until the matching phase implements it.
-# Convention: any change that touches a recipe must also bump the phase tag in the
-# echo string, so the README's quick-start always reflects the current capability.
+# T-meet task runner. Recipes implemented per phase; TODO markers track what's
+# still pending. Convention: when a recipe lands, drop its TODO and bump the
+# README quick-start if behavior changes.
 
 set shell := ["bash", "-cu"]
 set dotenv-load := false
@@ -15,38 +15,43 @@ dev:
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 build:
-    @echo "TODO phase-00 — cargo build --release (musl target during phase-10)"
+    cargo build --workspace
+
+build-release:
+    cargo build --workspace --release
 
 build-musl:
     @echo "TODO phase-10 — cargo build --release --target x86_64-unknown-linux-musl"
 
 frontend-build:
-    @echo "TODO phase-06 — pnpm --filter frontend build"
+    pnpm -C frontend install --frozen-lockfile
+    pnpm -C frontend build
 
 # ─── Check / quality gates ───────────────────────────────────────────────────
-check: fmt-check lint test audit
-    @echo "All gates green."
+check:
+    @bash scripts/check.sh
 
 fmt:
-    @echo "TODO phase-00 — cargo fmt --all + pnpm --filter frontend prettier --write"
+    cargo fmt --all
+    @echo "(frontend prettier not wired until phase-06)"
 
 fmt-check:
-    @echo "TODO phase-00 — cargo fmt --all -- --check + pnpm prettier --check"
+    cargo fmt --all -- --check
 
 lint:
-    @echo "TODO phase-00 — cargo clippy --all-targets --all-features -- -D warnings + pnpm eslint"
+    cargo clippy --workspace --all-targets -- -D warnings
 
 typecheck:
-    @echo "TODO phase-06 — pnpm --filter frontend tsc --noEmit"
+    pnpm -C frontend typecheck
 
 test:
-    @echo "TODO phase-00 — cargo test --workspace + pnpm vitest + pnpm playwright"
+    cargo test --workspace
 
 test-unit:
-    @echo "TODO phase-00 — cargo test --workspace"
+    cargo test --workspace
 
 test-e2e:
-    @echo "TODO phase-07 — pnpm playwright test (Brave via @playwright/mcp)"
+    @echo "TODO phase-07 — pnpm -C frontend playwright test (Brave via @playwright/mcp)"
 
 audit:
     @echo "TODO phase-09 — cargo deny check + pnpm audit --prod"
@@ -60,7 +65,8 @@ verify-static:
 
 # ─── Hygiene ─────────────────────────────────────────────────────────────────
 clean:
-    @echo "TODO phase-00 — cargo clean && rm -rf frontend/dist frontend/node_modules dist/"
+    cargo clean
+    rm -rf frontend/dist frontend/node_modules dist/
 
 # ─── Database (Phase 02) ─────────────────────────────────────────────────────
 db-prepare:

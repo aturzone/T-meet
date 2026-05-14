@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/meet-core",
+    "crates/meet-server",
+    "crates/meet-sfu",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.83"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/aturzone/T-meet"
+authors = ["aturzone"]
+
+[workspace.dependencies]
+# Async
+tokio = { version = "1.42", features = ["full"] }
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+
+# Errors
+thiserror = "2.0"
+
+# Serde
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Time & ids
+time = { version = "0.3", features = ["serde", "formatting", "parsing"] }
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Config
+toml = "0.8"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.dev]
+opt-level = 0
+debug = true

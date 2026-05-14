@@ -1,4 +1,4 @@
-msrv = "1.78"
+msrv = "1.83"
 
 # unwrap/expect are red flags outside tests and startup paths. CI enforces.
 # These are *guidance* — actual enforcement is via `cargo clippy -- -D ...` and

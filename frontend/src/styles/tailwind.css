@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: 15 23 42; /* slate-900 */
+    --color-fg: 226 232 240; /* slate-200 */
+    --color-muted: 148 163 184; /* slate-400 */
+    --color-accent: 96 165 250; /* blue-400 */
+    --color-surface: 30 41 59; /* slate-800 */
+    --color-border: 51 65 85; /* slate-700 */
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  body {
+    font-family: theme("fontFamily.sans");
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
