@@ -78,15 +78,15 @@ GET /ca.crt -> 200, application/x-pem-file, body = PEM-encoded CA cert
 
 ## Acceptance criteria
 
-- [ ] `cargo test -p meet-core --lib` covers all unit tests above.
-- [ ] `cargo test -p meet-server` covers the integration tests above.
-- [ ] `meet-server init` succeeds against an empty `data/` and writes `data/ca.bin`, `data/leaf.pem`, `data/leaf.key`, `data/ca.crt`.
-- [ ] `meet-server serve` starts an HTTPS listener that serves `/ca.crt` correctly.
-- [ ] Brave with the CA trusted opens `https://<server-ip>:<port>/ca.crt` with no warning.
-- [ ] Leaf cert auto-rotates: a test with a frozen clock past day 60 reissues a new leaf and reloads `rustls`.
-- [ ] No `unwrap`/`expect` outside tests and `main`.
-- [ ] No `openssl-sys` in `cargo tree`.
-- [ ] `tracing::info!` on init/serve does not include the passphrase, the CA private key, or the leaf private key.
+- [x] `cargo test -p meet-core --lib` covers all unit tests above.
+- [x] `cargo test -p meet-server` covers the integration tests above.
+- [x] `meet-server init` succeeds against an empty `data/` and writes `data/ca.bin`, `data/leaf.pem`, `data/leaf.key`, `data/ca.crt`.
+- [x] `meet-server serve` starts an HTTPS listener that serves `/ca.crt` correctly.
+- [x] Brave with the CA trusted opens `https://<server-ip>:<port>/ca.crt` with no warning.
+- [x] Leaf cert auto-rotates: a test with a frozen clock past day 60 reissues a new leaf and reloads `rustls`.
+- [x] No `unwrap`/`expect` outside tests and `main`.
+- [x] No `openssl-sys` in `cargo tree`.
+- [x] `tracing::info!` on init/serve does not include the passphrase, the CA private key, or the leaf private key.
 
 ## Open questions
 

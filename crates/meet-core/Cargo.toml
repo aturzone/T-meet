@@ -24,3 +24,14 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
 time = { workspace = true }
+
+# Phase 01 crypto
+argon2 = { workspace = true }
+chacha20poly1305 = { workspace = true }
+rand = { workspace = true }
+rand_core = { workspace = true }
+subtle = { workspace = true }
+zeroize = { workspace = true }
+secrecy = { workspace = true }
+rcgen = { workspace = true }
+x509-parser = { workspace = true }

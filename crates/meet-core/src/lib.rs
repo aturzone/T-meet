@@ -10,6 +10,7 @@
 //! - `signaling` (Phase 04)
 
 pub mod config;
+pub mod crypto;
 pub mod error;
 pub mod log;
 

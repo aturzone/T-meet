@@ -36,6 +36,31 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 # Config
 toml = "0.8"
 
+# Crypto (Phase 01)
+argon2 = { version = "0.5", default-features = false, features = ["std", "alloc", "password-hash"] }
+chacha20poly1305 = { version = "0.10", default-features = false, features = ["alloc", "rand_core"] }
+rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
+rand_core = { version = "0.6", features = ["std"] }
+subtle = "2.6"
+sha2 = { version = "0.10", default-features = false }
+zeroize = { version = "1.8", features = ["derive"] }
+secrecy = "0.10"
+
+# TLS / certificates (Phase 01)
+rcgen = { version = "0.13", default-features = false, features = ["pem", "crypto", "ring", "x509-parser"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
+rustls-pemfile = "2.2"
+x509-parser = "0.16"
+
+# Passphrase intake (Phase 01)
+rpassword = "7.3"
+
+# HTTP (used minimally in Phase 01 for /ca.crt; fleshed out in Phase 02)
+axum = { version = "0.7", default-features = false, features = ["http1", "tokio"] }
+axum-server = { version = "0.7", default-features = false, features = ["tls-rustls-no-provider"] }
+tower = { version = "0.5", default-features = false }
+tower-http = { version = "0.6", features = ["trace"] }
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
