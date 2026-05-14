@@ -1,12 +1,12 @@
+import { Router } from "./app/router";
+import { Toaster } from "./components/ui/Toaster";
+import { ErrorBoundary } from "./lib/error_boundary";
+
 export default function App() {
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-semibold">T-meet</h1>
-        <p className="text-muted text-sm">
-          Phase 00 skeleton — real UI lands in phase 06.
-        </p>
-      </div>
-    </main>
+    <ErrorBoundary>
+      <Toaster />
+      <Router />
+    </ErrorBoundary>
   );
 }

@@ -54,6 +54,7 @@ pub fn build_app(state: AppState) -> Router {
             }),
         )
         .route("/r/:id/join", post(routes::rooms_public::join))
+        .route("/api/setup-info", get(routes::setup_info::handler))
         .route("/ws/:room_id", get(routes::ws::handler))
         .nest("/admin", admin_routes)
         .fallback(routes::assets::handler)

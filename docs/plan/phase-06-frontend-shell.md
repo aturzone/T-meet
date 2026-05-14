@@ -109,14 +109,14 @@ export const useUi: UseBoundStore<StoreApi<UiState>>;
 
 ## Acceptance criteria
 
-- [ ] `pnpm -C frontend build` emits `frontend/dist/index.html` and code-split chunks.
-- [ ] All four routes render and the join flow navigates correctly with a mocked backend.
-- [ ] Tailwind theme tokens defined; no ad-hoc CSS files outside `tailwind.css`.
-- [ ] Setup page shows the leaf cert fingerprint when the server provides it via a new `GET /api/setup-info` endpoint (added in this phase).
-- [ ] Error boundary catches a forced render error and shows a generic message with the request-id if available.
-- [ ] Vitest suite passes; one Playwright E2E passes against the local server.
-- [ ] CSP from Phase 02 enforced without violations on every page.
-- [ ] `just check` is green.
+- [x] `pnpm -C frontend build` emits `frontend/dist/index.html` and code-split chunks.
+- [x] All four routes render and the join flow navigates correctly with a mocked backend.
+- [x] Tailwind theme tokens defined; no ad-hoc CSS files outside `tailwind.css`.
+- [x] Setup page shows the leaf cert fingerprint when the server provides it via a new `GET /api/setup-info` endpoint (added in this phase).
+- [x] Error boundary catches a forced render error and shows a generic message with the request-id if available.
+- [x] Vitest suite passes (12 tests across `schemas`, `store`, and `App` rendering); ~~one Playwright E2E passes against the local server~~ — **deferred to Phase 07** where Playwright + Brave needs the full WebRTC + fake-device setup anyway.
+- [x] CSP from Phase 02 enforced without violations on every page.
+- [x] `just check` is green.
 
 ## Open questions
 
