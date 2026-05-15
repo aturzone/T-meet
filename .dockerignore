@@ -1,0 +1,26 @@
+.git
+.github
+.gitignore
+.gitattributes
+.editorconfig
+
+# Local build artifacts (rebuilt inside the image)
+target/
+frontend/node_modules/
+frontend/dist/
+dist/
+data/
+
+# Editor / OS
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Pre-existing tarballs / artifacts
+*.tar.gz
+*.tar.zst
+*.sha256
+
+# Planning / docs not needed at build time
+.planning/

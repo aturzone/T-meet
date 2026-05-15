@@ -1413,7 +1413,7 @@ dependencies = [
 
 [[package]]
 name = "meet-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "argon2",
  "async-trait",
@@ -1442,7 +1442,7 @@ dependencies = [
 
 [[package]]
 name = "meet-server"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -1482,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "meet-sfu"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "meet-core",

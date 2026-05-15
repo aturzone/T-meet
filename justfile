@@ -88,6 +88,19 @@ db-prepare:
 migrate:
     @echo "TODO phase-02 — sqlx migrate run against the local sqlite file"
 
+# ─── Docker ──────────────────────────────────────────────────────────────────
+docker-build:
+    docker build -t t-meet:latest .
+
+docker-up:
+    docker compose up -d --build
+    @echo
+    @echo "Tail first-boot logs to copy the admin token:"
+    @echo "    docker compose logs -f meet"
+
+docker-down:
+    docker compose down
+
 # ─── Release ─────────────────────────────────────────────────────────────────
 release VERSION:
     @echo "TODO phase-10 — tag v{{VERSION}}, push, watch release.yml"

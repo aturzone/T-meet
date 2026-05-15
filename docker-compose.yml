@@ -1,0 +1,47 @@
+# T-meet — one-command deployment.
+#
+# First-time setup:
+#   1. Copy config.example.toml to config.toml and adjust.
+#   2. Create .env with your admin passphrase:
+#         echo "MEET_ADMIN_PASSPHRASE=correct horse battery staple" > .env
+#         chmod 600 .env
+#   3. docker compose up --build
+#
+# The first boot prints the admin token. Save it from `docker compose logs`.
+
+services:
+  meet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: t-meet:1.0.0
+    container_name: t-meet
+    restart: unless-stopped
+    ports:
+      - "8443:8443"    # HTTPS
+      - "8080:8080"    # HTTP redirect + /ca.crt escape hatch
+    environment:
+      - MEET_ADMIN_PASSPHRASE
+    env_file:
+      - .env
+    volumes:
+      - ./data:/opt/meet/data
+      # Bind-mount the operator's config.toml if present; otherwise the
+      # binary falls back to its built-in defaults.
+      - ./config.toml:/opt/meet/config.toml:ro
+    # First-boot is interactive only if MEET_ADMIN_PASSPHRASE is unset.
+    # The compose flow always sets it via env_file, so `init` runs head-less.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ ! -f /opt/meet/data/ca.bin ]; then
+          /opt/meet/meet-server init
+        fi
+        exec /opt/meet/meet-server serve
+    healthcheck:
+      # /healthz over the HTTP redirect port — bypasses self-signed cert.
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/ca.crt > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

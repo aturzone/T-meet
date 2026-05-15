@@ -1,7 +1,50 @@
 # Installing T-meet
 
-T-meet ships as a single statically-linked binary. No system services to
-install, no database to provision, no network calls to the outside world.
+T-meet ships two ways:
+
+1. **Docker Compose** — fastest. Unzip the release, set a passphrase,
+   `docker compose up --build`. Skip to the Docker section below.
+2. **Static binary** — single statically-linked `meet-server`. No
+   containerization, no system services to install, no database to
+   provision, no network calls to the outside world.
+
+Both paths produce the same binary; pick whichever fits your operational
+preferences.
+
+## Docker Compose (recommended)
+
+The release zip includes a multi-stage `Dockerfile` and a `docker-compose.yml`
+that runs everything in one container, owned by an unprivileged user, with
+a named volume for `data/`.
+
+```bash
+unzip t-meet-1.0.0.zip
+cd t-meet-1.0.0
+cp config.example.toml config.toml          # edit bind_ip / ports
+echo "MEET_ADMIN_PASSPHRASE=correct horse battery staple" > .env
+chmod 600 .env
+docker compose up -d --build
+```
+
+First boot prints the admin token to the container log:
+
+```bash
+docker compose logs meet | head -40
+```
+
+Copy the admin token (shown ONCE), the CA URL, and the setup URL. The
+container restarts on failure; subsequent boots re-use the same `data/`
+volume and the same admin secret (no token reprint).
+
+To stop:
+
+```bash
+docker compose down
+```
+
+To upgrade: pull the new release, `docker compose up -d --build`. The
+`data/` volume carries forward — same passphrase decrypts the existing
+CA bundle.
 
 ## Prerequisites
 
